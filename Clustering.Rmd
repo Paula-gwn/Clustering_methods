@@ -12,7 +12,7 @@ editor_options:
 
 E-commerce platforms strive to provide personalized experiences to their customers to enhance satisfaction and drive sales.
 Identifying distinct customer segments based on purchasing behavior, demographics, and website activity is critical for achieving this goal.
-Clustering,as an unsupervised machine learning technique enables the grouping of customers with similar characteristics and behaviors.This project aims to use clustering techniques to segment customers.We will use clustering techniques to segment customers based on their behavior.
+Clustering,as an unsupervised machine learning technique enables the grouping of customers with similar characteristics and behaviors.This project aims to use clustering techniques to segment customers.I will use clustering techniques to segment customers based on their behavior.
 I will use **K-Means Clustering** and determine the optimal number of clusters using the **Silhouette Method** also I will explore **DBSCAN** and **Hierarchical** techniques all together.
 
 ## Research Questions
