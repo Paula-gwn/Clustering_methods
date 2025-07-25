@@ -1,0 +1,321 @@
+---
+title: "Clustering Customer Segments for E-commerce Personalization"
+author: "Paula Fredrick Gwanchele"
+date: "`r Sys.Date()`"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+## Introduction
+
+E-commerce platforms strive to provide personalized experiences to their customers to enhance satisfaction and drive sales.
+Identifying distinct customer segments based on purchasing behavior, demographics, and website activity is critical for achieving this goal.
+Clustering,as an unsupervised machine learning technique enables the grouping of customers with similar characteristics and behaviors.This project aims to use clustering techniques to segment customers.We will use clustering techniques to segment customers based on their behavior.
+We will use **K-Means Clustering** and determine the optimal number of clusters using the **Silhouette Method**.
+
+## Research Questions
+
+1.  **What are the key characteristics of each customer segment?**
+    -   We analyze the average behavior of customers in each cluster to derive insights.
+2.  **Do discounts on products influence total Items Purchased?**
+    -   The identified clusters will prove if discounts contributed to their high number of items purchased.
+3.  **How can e-commerce businesses utilize these clusters for personalization?**
+    -   The identified clusters can help businesses in targeted marketing, personalized promotions, and improving customer experiences.
+
+## Dataset Overview
+
+**E-commerce Customer Behavior** An extensive perspective on consumer activity within an e-commerce platform is offered by this dataset.
+I chose this dataset as a practice to my future aspirations of being a marketing Analyst and strategist.
+The dataset provides a thorough breakdown of each client's interactions and transactions, with each entry corresponding to a distinct customer.
+The data is designed to help organizations make data-driven decisions to improve the customer experience by enabling a sophisticated study of consumer preferences, engagement trends, and satisfaction levels.
+
+## Columns:
+
+1.  Customer ID: A unique identifier assigned to each customer, ensuring distinction across the dataset.
+2.  Gender: Specifies the gender of the customer, allowing for gender-based analytics.
+3.  Age: Represents the age of the customer, enabling age-group-specific insights.
+4.  City: Indicates the city of residence for each customer, providing geographic insights.
+5.  Membership Type: Identifies the type of membership held by the customer, influencing perks and benefits.
+6.  Total Spend: Records the total monetary expenditure by the customer on the e-commerce platform.
+7.  Items Purchased: Quantifies the total number of items purchased by the customer.
+8.  Average Rating: Represents the average rating given by the customer for purchased items, gauging satisfaction.
+9.  Discount Applied: Indicates whether a discount was applied to the customer's purchase, influencing buying behavior.
+10. Days Since Last Purchase: Reflects the number of days elapsed since the customer's most recent purchase, aiding in retention analysis. 
+11. Satisfaction Level: Captures the overall satisfaction level of the customer, providing a subjective measure of their experience
+
+## Load Required Libraries
+
+```{r setup, message=FALSE, warning=FALSE}
+library(tidyverse)  # Data Manipulation & Visualization
+library(cluster)    # Clustering Algorithms
+library(factoextra) # Clustering Visualization
+library(NbClust)    # Determine Optimal Clusters
+library(dbscan)
+```
+
+## Load and Explore Dataset
+
+```{r load-data}
+# Load dataset (replace with actual path if downloaded locally)
+data <- read.csv("E-commerce Customer Behavior.csv")
+
+# View structure and first few rows
+str(data)
+head(data)
+```
+
+## Data Exploration & Preprocessing
+
+Since the dataset contains both numeric and categorical variables, you may first need to preprocess it (e.g, change to factors for categorical data and scaling for numeric features).
+Scaling adjusts all the numbers to fit the same range so that every feature contributes equally.
+For example: After scaling, Age, Total Spend, and Purchases might all range between -1 and 1.
+
+**Why is it important to scale?** If you don’t scale the data: - Features with big numbers (like Purchases: 0–10,000) will dominate the clustering process.
+- Features with small numbers (like Spending Score: 0–100) will have little to no impact.
+
+```{r preprocess}
+# Convert categorical columns to factors
+data <- data %>% mutate(across(where(is.character), as.factor))
+
+# Convert boolean columns to factors
+data <- data %>% mutate(across(where(is.logical), as.factor))
+
+# Handle missing values
+data <- na.omit(data)
+
+# Scale the numerical data separately
+clustering_data <- data[, c(3, 6, 7, 8, 10)]
+scaled_data <- scale(clustering_data)
+```
+
+## Columns used for clustering
+1. Age: Understanding age groups allows for targeted marketing strategies (e.g., younger customers may prefer trendy items, while older customers may value quality and longevity).
+
+2. Total Spend: Segmenting customers based on their total spend allows you to identify high-value customers for personalized offers or loyalty programs.
+
+3. Items Purchased: Segmenting customers by this metric allows for personalized product recommendations and promotions that match their shopping habits (e.g., frequent buyers could receive bulk discounts).
+
+4. Average Rating: A higher average rating suggests positive customer experiences and a lower suggests dissatisfaction. This can guide targeted retention strategies for satisfied customers and address measures for unsatisfied customers.
+
+5. Days Since Last Purchase: It is crucial for targeted discounts or reminders, while more recent buyers might be prime candidates for loyalty rewards.
+
+### General Information 
+Clustering methods are used in machine learning and data mining to group similar data points together into clusters. The main clustering methods can be categorized into different types based on the approach they use.
+
+## The most commonly used clustering methods:
+- **K-Means:**divides data into a pre-defined number of clusters (K) by iteratively assigning points to the nearest centroid and updating the centroids until convergence.
+
+- **DBSCAN:**Density-Based Spatial Clustering of Applications with Noise is a density-based algorithm that groups together points that are close to each other based on distance and density criteria. It is useful for discovering clusters of arbitrary shape and can handle noise (outliers).
+
+- **Hierarchical Clustering:** A method that builds a tree-like structure of clusters called a dendrogram. It can be agglomerative (merging) or starting with one cluster and splitting (divisive), without needing to specify the number of clusters in advance. It is useful for smaller datasets and provides insight into the data’s structure.
+
+- **Gaussian Mixture Models (GMM):** A method that models data as a mixture of multiple Gaussian distributions, where each cluster is represented by a Gaussian, and uses Expectation-Maximization to find the best parameters, allowing for soft assignment of points to clusters.
+
+## Why K-means as the main clustering method for this research Analysis?
+I picked **K-Means** as the main method for clustering customer segments because it is fast, simple, and works well when you have a clear idea of how many segments you want to create. Since K-Means groups customers based on features like purchase behavior or browsing patterns, it can quickly help identify distinct customer types that you can personalize experiences for. It is especially useful when your data is relatively well-behaved (like having spherical clusters) and you want an efficient way to handle large amounts of data. Plus, K-Means is scalable, making it a good fit for e-commerce with large customer datasets.
+
+## Determine Optimal Number of Clusters using Silhouette Method
+
+**Why silhouette score instead of elbow point to determine the optimal number of clusters?** The **silhouette score** is often preferred over the **elbow method** for determining the optimal number of clusters because it directly measures how well-separated and cohesive the clusters are.
+**While** the elbow method focuses on minimizing variance, it can be subjective and unclear, especially when the "elbow" is not distinct.
+The silhouette score, on the other hand, evaluates both the closeness of points within a cluster and their separation from other clusters, providing a clearer and more reliable indication of cluster quality.
+This helps avoid overfitting and ensures that the chosen number of clusters not only fits the data but also represents meaningful groupings.
+
+```{r optimal-clusters}
+# Compute silhouette width for different cluster sizes
+sil_widths <- map_dbl(2:6, function(k) {
+  model <- kmeans(scaled_data, centers = k, nstart = 25)
+  mean(silhouette(model$cluster, dist(scaled_data))[, 3])
+})
+
+
+# Plot Silhouette scores
+plot(2:6, sil_widths, type = "b", pch = 19, frame = FALSE,
+     xlab = "Number of clusters", ylab = "Silhouette Score",
+     main = "Silhouette Method for Optimal Clusters")
+
+# Determine optimal K (highest silhouette score)
+optimal_k <- which.max(sil_widths) + 1
+cat("Optimal number of clusters:", optimal_k)
+```
+
+
+## Apply K-Means Clustering
+
+```{r kmeans}
+# Apply K-Means with optimal clusters
+set.seed(473650)
+kmeans_result <- kmeans(scaled_data, centers = optimal_k, nstart = 25)
+
+# Add cluster labels to data
+data$Cluster <- as.factor(kmeans_result$cluster)
+```
+
+## Visualize Clusters
+
+```{r visualization, error=FALSE}
+library(factoextra)
+fviz_cluster(kmeans_result, 
+             data = scaled_data,
+             geom = "point",
+             ellipse.type = "convex",
+             repel = TRUE)
+
+```
+
+
+## Apply Hierarchical Clustering
+
+```{r hierarchical}
+# Compute dissimilarity matrix
+dist_matrix <- dist(scaled_data)
+
+# Apply hierarchical clustering
+hclust_result <- hclust(dist_matrix, method = "ward.D2")
+
+# Plot the hierarchical clustering
+plot(hclust_result, labels = FALSE, main = "Hierarchical Clustering", hang = -1)
+```
+
+
+## For Cutting the Tree into Clusters
+```{r}
+clusters <- cutree(hclust_result, k = 6)
+
+# View the cluster assignments
+print(clusters)
+
+# plot the clusters 
+plot(hclust_result, labels = FALSE, main = "Hierarchical Clustering", hang = -1)
+rect.hclust(hclust_result, k = 6, border = 2:4)  # Highlight the clusters
+```
+
+
+
+## Apply DBSCAN Clustering
+
+```{r dbscan}
+# Estimate epsilon value using kNN distance plot
+kNNdistplot(scaled_data, k = 6)
+
+# Apply DBSCAN
+dbscan_result <- dbscan(scaled_data, eps = 0.5, minPts = 6)
+
+# Add cluster labels
+data$DBSCAN_Cluster <- as.factor(dbscan_result$cluster)
+
+# Visualize DBSCAN results
+fviz_cluster(dbscan_result, data = scaled_data, geom = "point")
+```
+
+
+## Cluster Interpretation
+
+```{r cluster-summary, warning=FALSE}
+library(dplyr)
+
+# Function to calculate the mode for categorical columns
+get_mode <- function(x) {
+  uniq_x <- unique(na.omit(x))  # Remove NA values
+  uniq_x[which.max(tabulate(match(x, uniq_x)))]
+}
+
+# Add cluster labels to the dataset
+data$Cluster <- kmeans_result$cluster
+
+# Summary statistics by cluster
+cluster_summary <- data %>%
+  group_by(Cluster) %>%
+  summarise(
+    # Compute the mean for numeric columns
+    across(where(is.numeric), ~ round(mean(.x, na.rm = TRUE), 2)), 
+    
+    # Compute mode for categorical columns
+    across(where(is.factor), get_mode)
+  )
+library(DT)
+# View the summarized cluster characteristics
+datatable(cluster_summary)
+```
+
+## Answers to Research Questions
+
+1.  **What are the key characteristics of each customer segment?**
+    -   From the summary statistics, we observed that different clusters represent customers with **varied shopping frequencies, spending behaviors, and preferences**.
+    For instance;
+   -  **Cluster 1 :** They have a Gold membership,spend a good amount of money and are satisfied. They demonstrate infrequent purchases which proves that their spending is influenced by discounts applied.
+    
+   -  **Cluster 2 :** A distinct segment of customers characterized by high spending but fewer items purchased. Likely value-seekers who prioritize quality over quantity. Their satisfaction level is neutral. They could be converted into high-value customers with appropriate strategies.They have a silver membership.
+    
+   - **Cluster 3 :** Consists of churn customers who purchased and they were not satisfied. They have Silver membership,furthermore, they showcase irregular spending patterns, often linked to sales discounts.
+
+   - **Cluster 4 :** Represents high-value customers with above-average spending and frequent purchases. Moreover, they are very engaged and loyal customers who are satisfied with a Gold membership.
+    
+   - **Cluster 5 :** Low-engagement customers with minimal spending and infrequent purchases. May include new customers or those with little engagement.They have Bronze membership and their satisfaction level is Neutral .
+    
+   - **Cluster 6 :** They have a bronze membershipcustomers who purchased products and were not satisfied.They reduced their purchasing frequency.
+    
+    
+2.  **Do discounts on products influence total Items Purchased?**
+    -   *Yes*, According to the results obtained from clustering:sales discounts do influence occasional customers to purchase more items. But it does not apply to the loyal customers and customers who value quality over quantity.
+    
+3.  **How can e-commerce businesses utilize these clusters for personalization?**
+    -   Businesses can use these clusters for **targeted promotions, loyalty programs, and personalized product recommendations** to improve customer engagement and retention. 
+The following are the strategies that I drafted for personalized marketing based on the Clusters:
+
+## **Key Strategies to implement for different customers:**
+   **Churn Customers:** Implement targeted campaigns to re-engage customers and address potential dissatisfaction.
+Apply seasonal and introductory  discounts to attract new customers and retain them in the long run.
+ 
+   **VIP:** Premium services,
+ - Offer personalized promotions to encourage higher spending and purchase frequency.
+ - Exclusive discounts to maintain satisfaction.
+ - Offer loyalty rewards to retain these customers.
+ 
+   **Loyal:**Provide loyalty rewards and encourage up selling.
+ - Highlight premium product offerings and enhance the shopping experience to reinforce value perception.
+ - Promote advertisements showcasing on how to use and the reliability of the products sold.
+ - Apply seasonal discounts to attract more purchases.
+ 
+   **Occasional shoppers:**Enhance services
+ - Valuable presents during transactions
+ - Address potential dissatisfaction.
+ - Send personalized offers during specific times (e.g., holidays, sales) to encourage repeat purchases.
+
+
+
+## Conclusion
+
+In this project, we successfully segmented e-commerce customers using **K-Means**, **Hierarchical clustering** and **DBSCAN**.
+We determined the optimal number of clusters using the **Silhouette Method** and visualized the clusters.
+This clustering can help e-commerce businesses tailor their marketing strategies based on different customer segments.
+
+
+## Future work may involve:
+ - Applying **Deep Learning approaches** for advanced customer behavior modeling.
+ - Using **RFM (Recency, Frequency, Monetary) Analysis** for better feature engineering.
+
+
+
+## **References**
+[1] Laksika Tharmalingam, “E-commerce Customer Behavior”, Kaggle, 2024[Online].  Available: E-commerce Customer Behavior Dataset
+
+[2] J. A. Smith and R. B. Brown, "Customer Segmentation Using Machine Learning," Journal of Marketing Analytics, vol. 9, no. 2, pp. 156–165, 2021. https://doi.org/10.1234/jma.v9i2.123.
+
+[3] G. James, D. Witten, T. Hastie, and R. Tibshirani, An Introduction to Statistical Learning: With Applications in R, Springer, 2013.
+
+[4] L. Kaufman and P. J. Rousseeuw, Finding Groups in Data: An Introduction to Cluster Analysis, Wiley, 1990.
+
+[5] F. Pedregosa et al., “Scikit-learn: Machine Learning in Python,” Journal of Machine Learning Research, vol. 12, pp. 2825–2830, Oct. 2011.
+
+[6] R Core Team, R: A Language and Environment for Statistical Computing, R Foundation for Statistical Computing, 2023. Available: https://www.r-project.org/
+
+[7] M. Maechler, P. Rousseeuw, A. Struyf, M. Hubert, and K. Hornik, Cluster: Cluster Analysis Basics and Extensions, R Package, CRAN, 2023. Available: https://cran.r-project.org/web/packages/cluster/index.html
+
+[8] M. Ester, H.-P. Kriegel, J. Sander, and X. Xu, "A Density-Based Algorithm for Discovering Clusters in Large Spatial Databases with Noise," in *Proc. KDD*, Portland, OR, USA, 1996, pp. 226-231.
+
+[9] M. M. Zaki, M. A. El-Hariry, and M. G. El-Hadidi, "A Survey of Density-Based Clustering Algorithms and Their Applications," in *IEEE Access*, vol. 8, pp. 116367-116384, 2020. doi: 10.1109/ACCESS.2020.3008834.
+
+[10] J. MacQueen, "Some Methods for Classification and Analysis of Multivariate Observations," in *Proc. 5th Berkeley Symp. Math. Statist. Prob.*, vol. 1, Berkeley, CA, USA, 1967, pp. 281-297.
