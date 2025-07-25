@@ -18,7 +18,7 @@ I will use **K-Means Clustering** and determine the optimal number of clusters u
 ## Research Questions
 
 1.  **What are the key characteristics of each customer segment?**
-    -   We analyze the average behavior of customers in each cluster to derive insights.
+    -   I analyze the average behavior of customers in each cluster to derive insights.
 2.  **Do discounts on products influence total Items Purchased?**
     -   The identified clusters will prove if discounts contributed to their high number of items purchased.
 3.  **How can e-commerce businesses utilize these clusters for personalization?**
@@ -243,7 +243,7 @@ datatable(cluster_summary)
 ## Answers to Research Questions
 
 1.  **What are the key characteristics of each customer segment?**
-    -   From the summary statistics, we observed that different clusters represent customers with **varied shopping frequencies, spending behaviors, and preferences**.
+    -   From the summary statistics, I observed that different clusters represent customers with **varied shopping frequencies, spending behaviors, and preferences**.
     For instance;
    -  **Cluster 1 :** They have a Gold membership,spend a good amount of money and are satisfied. They demonstrate infrequent purchases which proves that their spending is influenced by discounts applied.
     
@@ -288,8 +288,8 @@ Apply seasonal and introductory  discounts to attract new customers and retain t
 
 ## Conclusion
 
-In this project, we successfully segmented e-commerce customers using **K-Means**, **Hierarchical clustering** and **DBSCAN**.
-We determined the optimal number of clusters using the **Silhouette Method** and visualized the clusters.
+In this project, I successfully segmented e-commerce customers using **K-Means**, **Hierarchical clustering** and **DBSCAN**.
+I determined the optimal number of clusters using the **Silhouette Method** and visualized the clusters.
 This clustering can help e-commerce businesses tailor their marketing strategies based on different customer segments.
 
 
